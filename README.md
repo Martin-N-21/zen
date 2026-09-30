@@ -37,7 +37,7 @@ When running the application directly from Windows, install the Windows build of
 Install `uv` from the official instructions for Windows and then run from PowerShell:
 
 ```powershell
-Set-Location "C:\Users\Zunee\Desktop\zen"
+Set-Location "C:\Users\User\Desktop\zen"
 uv sync
 uv run zen
 ```
@@ -47,7 +47,7 @@ uv run zen
 From WSL:
 
 ```bash
-cd /mnt/c/Users/Zunee/Desktop/zen
+cd /mnt/c/Users/User/Desktop/zen
 uv sync
 ```
 
