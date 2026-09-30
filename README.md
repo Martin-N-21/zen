@@ -51,13 +51,36 @@ cd /mnt/c/Users/User/Desktop/zen
 uv sync
 ```
 
+## Configure music folders
+
+The configuration is stored in the platform-specific user configuration directory. Add one or more local music folders with:
+
+```bash
+uv run zen config add-root "/mnt/c/Users/YourUser/Music"
+uv run zen config list
+```
+
+On PowerShell, use a Windows path:
+
+```powershell
+uv run zen config add-root "C:\Users\YourUser\Music"
+```
+
 ## Run
 
 ```bash
 uv run zen
 ```
 
-The current version only contains the initial Textual shell. Library scanning, SQLite persistence, and `MpvBackend` will be implemented in later steps.
+The current version can persist music folders and scan supported audio files into SQLite. The lazy-loaded tree and `MpvBackend` will be implemented in later steps.
+
+To scan configured folders:
+
+```bash
+uv run zen scan --details
+```
+
+The SQLite database is stored in the platform-specific user data directory as `zen/library.db`.
 
 ## Checks
 
