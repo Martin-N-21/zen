@@ -72,7 +72,7 @@ uv run zen config add-root "C:\Users\YourUser\Music"
 uv run zen
 ```
 
-The current version can persist music folders and scan supported audio files into SQLite. The lazy-loaded tree and `MpvBackend` will be implemented in later steps.
+The current version can persist music folders and scan supported audio files into SQLite. It also includes the first lazy-loaded library tree and an `MpvBackend` for local playback.
 
 To scan configured folders:
 
@@ -81,6 +81,16 @@ uv run zen scan --details
 ```
 
 The SQLite database is stored in the platform-specific user data directory as `zen/library.db`.
+
+## Keyboard Controls
+
+- `Enter`: expand a folder or play a file.
+- `←` / `→`: collapse or expand the selected folder.
+- `Space`: play or pause.
+- `h` / `l`: seek backward or forward five seconds.
+- `-` / `=`: decrease or increase volume.
+- `s`: stop playback.
+- `q`: quit.
 
 ## Checks
 
