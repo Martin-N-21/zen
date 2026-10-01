@@ -10,9 +10,10 @@ from textual.widgets import Footer, Header, Tree
 from textual.widgets.tree import TreeNode
 
 from ..config import ZenConfig, load_config
-from ..library.scanner import SUPPORTED_EXTENSIONS
+from ..library.scanner import SUPPORTED_EXTENSIONS, scan_roots
 from ..playback import MpvBackend, PlaybackBackend, PlaybackError
 from ..storage.database import LibraryDatabase
+from .download import DownloadScreen
 from .player import PlayerPanel
 
 
@@ -30,6 +31,7 @@ class LibraryTree(Tree):
             "l": "action_seek_forward",
             "-": "action_volume_down",
             "=": "action_volume_up",
+            "d": "action_open_download",
         }
         action_name = app_actions.get(event.key)
         if action_name is not None:
@@ -76,6 +78,7 @@ class ZenApp(App[None]):
         ("l", "seek_forward", "Forward 5s"),
         ("-", "volume_down", "Volume -"),
         ("=", "volume_up", "Volume +"),
+        ("d", "open_download", "Download"),
     ]
 
     CSS = """
@@ -118,11 +121,7 @@ class ZenApp(App[None]):
         yield Footer()
 
     def on_mount(self) -> None:
-        tree = self.query_one("#library-tree", Tree)
-        tree.root.expand()
-        for root in self.config.music_roots:
-            if root.is_dir():
-                tree.root.add(str(root), data=root, allow_expand=True)
+        self._populate_library_tree()
         if not self.config.music_roots:
             self.notify("No music roots configured. Use 'zen config add-root PATH'.")
         self._refresh_player()
@@ -172,6 +171,22 @@ class ZenApp(App[None]):
     def action_volume_up(self) -> None:
         self._change_volume(5.0)
 
+    def action_open_download(self) -> None:
+        self.push_screen(DownloadScreen(self.config))
+
+    def handle_download_complete(self, path: Path) -> None:
+        self.config = load_config()
+        if not _is_inside_configured_root(path, self.config.music_roots):
+            self.notify("Downloaded outside the configured music library.")
+            return
+
+        tracks = list(scan_roots(self.config.music_roots))
+        summary = self.database.sync_tracks(self.config.music_roots, tracks)
+        self._populate_library_tree()
+        self.notify(
+            f"Library updated: {summary.added} added, {summary.updated} updated."
+        )
+
     def _load_directory(self, node: TreeNode, path: Path) -> None:
         if path in self._loaded_directories:
             return
@@ -197,6 +212,15 @@ class ZenApp(App[None]):
         for file_path in files:
             node.add(file_path.name, data=file_path, allow_expand=False)
 
+    def _populate_library_tree(self) -> None:
+        tree = self.query_one("#library-tree", Tree)
+        tree.root.remove_children()
+        tree.root.expand()
+        self._loaded_directories.clear()
+        for root in self.config.music_roots:
+            if root.is_dir():
+                tree.root.add(str(root), data=root, allow_expand=True)
+
     def _play(self, path: Path) -> None:
         try:
             self.backend.load(path)
@@ -217,6 +241,8 @@ class ZenApp(App[None]):
             self._show_error(exc)
 
     def _refresh_player(self) -> None:
+        if self.screen is not self:
+            return
         state = self.backend.poll()
         panel = self.query_one("#player-panel", PlayerPanel)
         panel.update_state(state)
@@ -226,3 +252,14 @@ class ZenApp(App[None]):
 
     def _show_error(self, error: Exception | str) -> None:
         self.notify(str(error), severity="error")
+
+
+def _is_inside_configured_root(path: Path, roots: tuple[Path, ...]) -> bool:
+    normalized_path = path.expanduser().resolve(strict=False)
+    for root in roots:
+        try:
+            normalized_path.relative_to(root)
+        except ValueError:
+            continue
+        return True
+    return False

@@ -12,6 +12,7 @@ The project is being developed as both a personal tool and a junior software-eng
 - Store the local library and playback history in SQLite.
 - Search the library quickly.
 - Support MP3, FLAC, OGG, and WAV files.
+- Search and download audio through supported `yt-dlp` platforms.
 - Work from both Linux/WSL and Windows terminals.
 
 AI features are intentionally out of scope for the music player. A separate AI project may be built later using the library data.
@@ -20,6 +21,8 @@ AI features are intentionally out of scope for the music player. A separate AI p
 
 - `uv`.
 - `mpv` available on `PATH`.
+- `yt-dlp` available on `PATH` for downloads.
+- `ffmpeg` available on `PATH` for audio conversion.
 
 `uv` will install and use the Python version declared in `.python-version`.
 
@@ -27,10 +30,20 @@ On Debian or WSL, install the system prerequisites with:
 
 ```bash
 sudo apt update
-sudo apt install -y curl mpv
+sudo apt install -y curl mpv ffmpeg
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source "$HOME/.local/bin/env"
 ```
+
+Install `yt-dlp` separately if downloads are enabled:
+
+```bash
+uv tool install --force yt-dlp
+source "$HOME/.local/bin/env"
+yt-dlp --version
+```
+
+Use a current `yt-dlp` release. Distribution packages can be outdated and may fail against recent platform changes.
 
 When running the application directly from Windows, install the Windows build of `mpv` and make sure its executable is available on `PATH`.
 
@@ -66,13 +79,19 @@ On PowerShell, use a Windows path:
 uv run zen config add-root "C:\Users\YourUser\Music"
 ```
 
+Set the default download folder with:
+
+```bash
+uv run zen config set-download-dir "/mnt/c/Users/YourUser/Music"
+```
+
 ## Run
 
 ```bash
 uv run zen
 ```
 
-The current version can persist music folders and scan supported audio files into SQLite. It also includes the first lazy-loaded library tree and an `MpvBackend` for local playback.
+The current version can persist music folders and scan supported audio files into SQLite. It includes a lazy-loaded library tree, an `MpvBackend` for local playback, and the first download screen backed by `yt-dlp`.
 
 To scan configured folders:
 
@@ -90,6 +109,7 @@ The SQLite database is stored in the platform-specific user data directory as `z
 - `h` / `l`: seek backward or forward five seconds.
 - `-` / `=`: decrease or increase volume.
 - `s`: stop playback.
+- `d`: open the download screen.
 - `q`: quit.
 
 ## Checks

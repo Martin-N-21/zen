@@ -7,10 +7,30 @@ from zen.config import ZenConfig
 from zen.playback.base import PlaybackState
 from zen.storage.database import LibraryDatabase
 from zen.tui.app import ZenApp
+from zen.tui.download import DownloadScreen
 
 
 def test_app_title() -> None:
     assert ZenApp.TITLE == "zen"
+
+
+def test_download_screen_opens_from_keyboard(tmp_path: Path) -> None:
+    music_root = tmp_path / "music"
+    music_root.mkdir()
+    app = ZenApp(
+        backend=FakeBackend(),
+        config=ZenConfig((music_root,)),
+        database=LibraryDatabase(tmp_path / "library.db"),
+    )
+
+    async def check_app() -> None:
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.press("d")
+            await pilot.pause()
+            assert isinstance(app.screen, DownloadScreen)
+
+    asyncio.run(check_app())
 
 
 def test_app_mounts_configured_music_root(tmp_path: Path) -> None:

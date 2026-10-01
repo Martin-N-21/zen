@@ -15,9 +15,18 @@ class ZenConfig:
     """Configuration values that are independent from the project directory."""
 
     music_roots: tuple[Path, ...] = ()
+    default_download_directory: Path | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"version": 1, "music_roots": [str(root) for root in self.music_roots]}
+        return {
+            "version": 1,
+            "music_roots": [str(root) for root in self.music_roots],
+            "default_download_directory": (
+                str(self.default_download_directory)
+                if self.default_download_directory is not None
+                else None
+            ),
+        }
 
 
 def get_config_path(path: Path | None = None) -> Path:
@@ -48,7 +57,19 @@ def load_config(path: Path | None = None) -> ZenConfig:
         raise ValueError("Configuration field 'music_roots' must be a list of paths")
 
     roots = tuple(_normalize_path(Path(root)) for root in raw_roots)
-    return ZenConfig(music_roots=roots)
+    raw_download_directory = raw.get("default_download_directory")
+    if raw_download_directory is not None and not isinstance(raw_download_directory, str):
+        raise ValueError("Configuration field 'default_download_directory' must be a path")
+
+    download_directory = (
+        _normalize_path(Path(raw_download_directory))
+        if raw_download_directory is not None
+        else None
+    )
+    return ZenConfig(
+        music_roots=roots,
+        default_download_directory=download_directory,
+    )
 
 
 def save_config(config: ZenConfig, path: Path | None = None) -> Path:
@@ -80,7 +101,33 @@ def remove_music_root(config: ZenConfig, root: Path) -> ZenConfig:
     normalized_root = _normalize_path(root)
     if normalized_root not in config.music_roots:
         raise ValueError(f"Music root is not configured: {normalized_root}")
-    return ZenConfig(tuple(item for item in config.music_roots if item != normalized_root))
+    default_directory = config.default_download_directory
+    if default_directory == normalized_root:
+        default_directory = None
+    return ZenConfig(
+        music_roots=tuple(item for item in config.music_roots if item != normalized_root),
+        default_download_directory=default_directory,
+    )
+
+
+def set_default_download_directory(config: ZenConfig, directory: Path) -> ZenConfig:
+    """Return a config with an existing default download directory."""
+
+    normalized_directory = _normalize_path(directory)
+    if not normalized_directory.is_dir():
+        raise ValueError(f"Download directory is not a directory: {normalized_directory}")
+    return ZenConfig(
+        music_roots=config.music_roots,
+        default_download_directory=normalized_directory,
+    )
+
+
+def get_default_download_directory(config: ZenConfig) -> Path | None:
+    """Return the configured directory or the first music root as fallback."""
+
+    if config.default_download_directory is not None:
+        return config.default_download_directory
+    return config.music_roots[0] if config.music_roots else None
 
 
 def _normalize_path(path: Path) -> Path:

@@ -6,7 +6,14 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
-from .config import add_music_root, get_config_path, load_config, remove_music_root, save_config
+from .config import (
+    add_music_root,
+    get_config_path,
+    load_config,
+    remove_music_root,
+    save_config,
+    set_default_download_directory,
+)
 from .library.scanner import scan_roots
 from .storage.database import LibraryDatabase
 from .tui.app import ZenApp
@@ -26,6 +33,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     remove_parser = config_commands.add_parser("remove-root", help="Remove a music folder")
     remove_parser.add_argument("path", type=Path)
+
+    download_parser = config_commands.add_parser(
+        "set-download-dir",
+        help="Set the default download folder",
+    )
+    download_parser.add_argument("path", type=Path)
 
     scan_parser = commands.add_parser("scan", help="Scan configured music folders")
     scan_parser.add_argument(
@@ -68,6 +81,10 @@ def _handle_config(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
             return
         for root in config.music_roots:
             print(root)
+        print(
+            "Default download directory: "
+            f"{config.default_download_directory or 'first music root'}"
+        )
         return
 
     try:
@@ -75,6 +92,8 @@ def _handle_config(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
             config = add_music_root(config, args.path)
         elif args.config_command == "remove-root":
             config = remove_music_root(config, args.path)
+        elif args.config_command == "set-download-dir":
+            config = set_default_download_directory(config, args.path)
         else:
             parser.error(f"Unknown config command: {args.config_command}")
             return
